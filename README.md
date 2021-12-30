@@ -22,15 +22,16 @@ Finally, you can run all configured scripts by executing `start_search.py` (whic
 
 ## List of Scripts
 
-| Name | Script |
-|---|---|
-| Monitoring /etc/hosts file | [monitor_hosts_file.py](scripts/monitor_hosts_file.py) |
-| Monitoring /etc/ld.so.preload file | [monitor_ld_preload.py](scripts/monitor_ld_preload.py) |
-| Monitoring /etc/passwd file | [monitor_passwd.py](scripts/monitor_passwd.py) |
-| Monitoring SSH authorized_keys files | [monitor_ssh_authorized_keys.py](scripts/monitor_ssh_authorized_keys.py) |
-| Search for executables in /dev/shm | [search_dev_shm.py](scripts/search_dev_shm.py) |
-| Search immutable files | [search_immutable_files.py](scripts/search_immutable_files.py) |
-| Search for fileless programs (memfd_create) | [search_memfd_create.py](scripts/search_memfd_create.py) |
-| Search for kernel thread impersonations | [search_non_kthreads.py](scripts/search_non_kthreads.py) |
-| Test script to check if alerting works | [test_alert.py](scripts/test_alert.py) |
-| Verify integrity of installed .deb packages | [verify_deb_packages.py](scripts/verify_deb_packages.py) |
+| Name                                        | Script                                                                   |
+|---------------------------------------------|--------------------------------------------------------------------------|
+| Monitoring /etc/hosts file                  | [monitor_hosts_file.py](scripts/monitor_hosts_file.py)                   |
+| Monitoring /etc/ld.so.preload file          | [monitor_ld_preload.py](scripts/monitor_ld_preload.py)                   |
+| Monitoring /etc/passwd file                 | [monitor_passwd.py](scripts/monitor_passwd.py)                           |
+| Monitoring SSH authorized_keys files        | [monitor_ssh_authorized_keys.py](scripts/monitor_ssh_authorized_keys.py) |
+| Search for running deleted programs         | [search_deleted_exe.py](scripts/search_deleted_exe.py)                  |
+| Search for executables in /dev/shm          | [search_dev_shm.py](scripts/search_dev_shm.py)                           |
+| Search immutable files                      | [search_immutable_files.py](scripts/search_immutable_files.py)           |
+| Search for fileless programs (memfd_create) | [search_memfd_create.py](scripts/search_memfd_create.py)                 |
+| Search for kernel thread impersonations     | [search_non_kthreads.py](scripts/search_non_kthreads.py)                 |
+| Test script to check if alerting works      | [test_alert.py](scripts/test_alert.py)                                   |
+| Verify integrity of installed .deb packages | [verify_deb_packages.py](scripts/verify_deb_packages.py)                 |
