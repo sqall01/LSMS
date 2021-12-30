@@ -5,7 +5,7 @@
 # blog: https://h4des.org
 # github: https://github.com/sqall01
 #
-# # Licensed under the MIT License.
+# Licensed under the MIT License.
 
 """
 Short summary:
