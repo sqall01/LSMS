@@ -13,7 +13,7 @@ Malware will name itself with [brackets] to impersonate a Linux kernel thread.
 Any Linux process that looks like a [kernel thread] should have an empty maps file.
 
 Site note:
-when using ps auxwf | grep "\[" they are children of [kthreadd]
+when using ps auxwf | grep "\\[" they are children of [kthreadd]
 
 Requirements:
 None
@@ -24,13 +24,13 @@ https://www.sandflysecurity.com/blog/detecting-linux-kernel-process-masquerading
 """
 
 import os
-import socket
 
-# Read configuration and library functions.
+from lib.util import output_error, output_finding
+
+# Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR
     from config.search_non_kthreads import NON_KTHREAD_WHITELIST, ACTIVATED
-    from lib.alerts import raise_alert_alertr, raise_alert_mail
 except:
     ALERTR_FIFO = None
     FROM_ADDR = None
@@ -80,56 +80,20 @@ def search_suspicious_process():
             # (e.g., "avahi-daemon: running [towelie.local]"" does not)
             elif process_name.startswith("["):
 
-                if print_output:
-                    print("Checking pid: %s (%s) - " % (pid, process_name),
-                          end="")
-
                 file_path = "/proc/%s/maps" % pid
                 try:
                     with open(file_path, 'rt') as fp:
                         data = fp.read()
                         if data == "":
-                            if print_output:
-                                print("ok")
                             continue
 
                 except Exception as e:
-                    print("Exception")
-                    print(e)
-                    print("")
+                    output_error(__file__, str(e))
                     continue
 
-                if print_output:
-                    print("SUSPICIOUS")
-                    print(ps_output)
-                    print("")
-
-                else:
-                    if ALERTR_FIFO is not None:
-
-                        hostname = socket.gethostname()
-                        optional_data = dict()
-                        optional_data["pid"] = pid
-                        optional_data["ps_output"] = ps_output
-                        optional_data["hostname"] = hostname
-                        message = "Process with pid '%s' on host '%s' suspicious.\n\n" % (pid, hostname)
-                        message += ps_output
-                        optional_data["message"] = message
-
-                        raise_alert_alertr(ALERTR_FIFO,
-                                           optional_data)
-
-                    if FROM_ADDR is not None and TO_ADDR is not None:
-
-                        hostname = socket.gethostname()
-                        subject = "[Security] Suspicious process found on '%s'" % hostname
-                        message = "Process with pid '%s' on host '%s' suspicious.\n\n" % (pid, hostname)
-                        message += ps_output
-
-                        raise_alert_mail(FROM_ADDR,
-                                         TO_ADDR,
-                                         subject,
-                                         message)
+                message = "Process with pid '%s' suspicious.\n\n" % pid
+                message += ps_output
+                output_finding(__file__, message)
 
 
 if __name__ == '__main__':

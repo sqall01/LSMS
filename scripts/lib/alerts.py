@@ -28,7 +28,7 @@ def raise_alert_alertr(alertr_fifo: str,
             os.write(fd, json.dumps(msg_dict).encode("ascii"))
             os.close(fd)
             # Give AlertR sensor time to process the data.
-            # Otherwise a parsing error might occur on the FIFO sensor when multiple messages were mixed.
+            # Otherwise, a parsing error might occur on the FIFO sensor when multiple messages were mixed.
             time.sleep(2)
             break
 

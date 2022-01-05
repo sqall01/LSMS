@@ -16,14 +16,13 @@ None
 """
 
 import os
-import json
 import stat
-import socket
 from typing import List, Tuple, Dict, Any
 
-from lib.alerts import raise_alert_alertr, raise_alert_mail
+from lib.state import load_state, store_state
+from lib.util import output_error, output_finding
 
-# Read configuration and library functions.
+# Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR, STATE_DIR
     from config.monitor_ssh_authorized_keys import ACTIVATED
@@ -34,8 +33,6 @@ except:
     TO_ADDR = None
     ACTIVATED = True
     STATE_DIR = os.path.join("/tmp", os.path.basename(__file__))
-
-MAIL_SUBJECT = "[Security] Monitoring SSH authorized_keys on host '%s'" % socket.gethostname()
 
 
 class MonitorSSHException(Exception):
@@ -76,55 +73,6 @@ def _get_system_ssh_data() -> List[Dict[str, Any]]:
     return ssh_data
 
 
-def _load_ssh_data() -> List[Dict[str, Any]]:
-    state_file = os.path.join(STATE_DIR, "state")
-    ssh_data = []
-    if os.path.isfile(state_file):
-        data = None
-        try:
-            with open(state_file, 'rt') as fp:
-                data = fp.read()
-            if data is None:
-                raise MonitorSSHException("Read state data is None.")
-
-            ssh_data = json.loads(data)
-
-        except Exception as e:
-            raise MonitorSSHException("State data: '%s'; Exception: '%s'" % (str(data), str(e)))
-
-    return ssh_data
-
-
-def _output_error(msg: str):
-
-    # Decide where to output results.
-    print_output = False
-    if ALERTR_FIFO is None and FROM_ADDR is None and TO_ADDR is None:
-        print_output = True
-
-    if print_output:
-        print(msg)
-
-    else:
-        hostname = socket.gethostname()
-        message = "Error monitoring SSH authorized_keys on host '%s': %s" \
-                  % (hostname, msg)
-
-        if ALERTR_FIFO:
-            optional_data = dict()
-            optional_data["error"] = True
-            optional_data["message"] = message
-
-            raise_alert_alertr(ALERTR_FIFO,
-                               optional_data)
-
-        if FROM_ADDR is not None and TO_ADDR is not None:
-            raise_alert_mail(FROM_ADDR,
-                             TO_ADDR,
-                             MAIL_SUBJECT,
-                             message)
-
-
 def _parse_authorized_keys_file(authorized_keys_file: str) -> List[str]:
     entries = set()
     try:
@@ -136,18 +84,6 @@ def _parse_authorized_keys_file(authorized_keys_file: str) -> List[str]:
         raise MonitorSSHException("Unable to parse file '%s'; Exception: '%s'" % (authorized_keys_file, str(e)))
 
     return list(entries)
-
-
-def _store_ssh_data(ssh_data: List[Dict[str, Any]]):
-    # Create state dir if it does not exist.
-    if not os.path.exists(STATE_DIR):
-        os.makedirs(STATE_DIR)
-
-    state_file = os.path.join(STATE_DIR, "state")
-    with open(state_file, 'wt') as fp:
-        fp.write(json.dumps(ssh_data))
-
-    os.chmod(state_file, stat.S_IREAD | stat.S_IWRITE)
 
 
 def monitor_ssh_authorized_keys():
@@ -165,11 +101,13 @@ def monitor_ssh_authorized_keys():
     stored_ssh_data = []
     curr_ssh_data = []
     try:
-        stored_ssh_data = _load_ssh_data()
+        state_data = load_state(STATE_DIR)
+        if "ssh_data" in state_data.keys():
+            stored_ssh_data = state_data["ssh_data"]
         curr_ssh_data = _get_system_ssh_data()
 
     except Exception as e:
-        _output_error(str(e))
+        output_error(__file__, str(e))
         return
 
     # Check if any authorized_keys file is world writable.
@@ -177,28 +115,9 @@ def monitor_ssh_authorized_keys():
         authorized_keys_file = curr_entry["authorized_keys_file"]
         file_stat = os.stat(authorized_keys_file)
         if file_stat.st_mode & stat.S_IWOTH:
-            hostname = socket.gethostname()
-            message = "SSH authorized_keys file for user '%s' is world writable on host '%s'." \
-                      % (curr_entry["user"], hostname)
+            message = "SSH authorized_keys file for user '%s' is world writable." % curr_entry["user"]
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["username"] = curr_entry["user"]
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
     # Compare stored data with current one.
     for stored_entry in stored_ssh_data:
@@ -210,114 +129,35 @@ def monitor_ssh_authorized_keys():
                 curr_user_entry = curr_entry
                 break
         if curr_user_entry is None:
-            hostname = socket.gethostname()
-            message = "SSH authorized_keys file for user '%s' was deleted on host '%s'." \
-                      % (stored_entry["user"], hostname)
+            message = "SSH authorized_keys file for user '%s' was deleted." % stored_entry["user"]
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["username"] = stored_entry["user"]
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
-
+            output_finding(__file__, message)
             continue
 
         # Check authorized_keys path has changed.
         if stored_entry["authorized_keys_file"] != curr_user_entry["authorized_keys_file"]:
-            hostname = socket.gethostname()
-            message = "SSH authorized_keys location for user '%s' changed from '%s' to '%s' on host '%s'." \
+            message = "SSH authorized_keys location for user '%s' changed from '%s' to '%s'." \
                       % (stored_entry["user"],
                          stored_entry["authorized_keys_file"],
-                         curr_user_entry["authorized_keys_file"],
-                         hostname)
+                         curr_user_entry["authorized_keys_file"])
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["username"] = stored_entry["user"]
-                optional_data["from"] = stored_entry["authorized_keys_file"]
-                optional_data["to"] = curr_user_entry["authorized_keys_file"]
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
         # Check authorized_key was removed.
         for authorized_key in stored_entry["authorized_keys_entries"]:
             if authorized_key not in curr_user_entry["authorized_keys_entries"]:
-                hostname = socket.gethostname()
-                message = "SSH authorized_keys entry was removed on host '%s'.\n\n" % hostname
+                message = "SSH authorized_keys entry was removed.\n\n"
                 message += "Entry: %s" % authorized_key
 
-                if print_output:
-                    print(message)
-                    print("#" * 80)
-
-                if ALERTR_FIFO:
-                    optional_data = dict()
-                    optional_data["username"] = stored_entry["user"]
-                    optional_data["authorized_keys_entry"] = authorized_key
-                    optional_data["hostname"] = hostname
-                    optional_data["message"] = message
-
-                    raise_alert_alertr(ALERTR_FIFO,
-                                       optional_data)
-
-                if FROM_ADDR is not None and TO_ADDR is not None:
-                    raise_alert_mail(FROM_ADDR,
-                                     TO_ADDR,
-                                     MAIL_SUBJECT,
-                                     message)
+                output_finding(__file__, message)
 
         # Check authorized_key was added.
         for authorized_key in curr_user_entry["authorized_keys_entries"]:
             if authorized_key not in stored_entry["authorized_keys_entries"]:
-                hostname = socket.gethostname()
-                message = "SSH authorized_keys entry was added on host '%s'.\n\n" % hostname
+                message = "SSH authorized_keys entry was added.\n\n"
                 message += "Entry: %s" % authorized_key
 
-                if print_output:
-                    print(message)
-                    print("#" * 80)
-
-                if ALERTR_FIFO:
-                    optional_data = dict()
-                    optional_data["username"] = stored_entry["user"]
-                    optional_data["authorized_keys_entry"] = authorized_key
-                    optional_data["hostname"] = hostname
-                    optional_data["message"] = message
-
-                    raise_alert_alertr(ALERTR_FIFO,
-                                       optional_data)
-
-                if FROM_ADDR is not None and TO_ADDR is not None:
-                    raise_alert_mail(FROM_ADDR,
-                                     TO_ADDR,
-                                     MAIL_SUBJECT,
-                                     message)
+                output_finding(__file__, message)
 
     for curr_entry in curr_ssh_data:
         found = False
@@ -326,39 +166,20 @@ def monitor_ssh_authorized_keys():
                 found = True
                 break
         if not found:
-            hostname = socket.gethostname()
-            message = "New authorized_keys file was added for user '%s' on host '%s'.\n\n" \
-                      % (curr_entry["user"], hostname)
+            message = "New authorized_keys file was added for user '%s'.\n\n" % curr_entry["user"]
             message += "Entries:\n"
             for authorized_key in curr_entry["authorized_keys_entries"]:
                 message += authorized_key
                 message += "\n"
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["username"] = curr_entry["user"]
-                optional_data["authorized_keys_entries"] = curr_entry["authorized_keys_entries"]
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
     try:
-        _store_ssh_data(curr_ssh_data)
+        state_data["ssh_data"] = curr_ssh_data
+        store_state(STATE_DIR, state_data)
 
     except Exception as e:
-        _output_error(str(e))
+        output_error(__file__, str(e))
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 from typing import List
 
-# List of directories to search for immutablle files. Defaults to "/".
+# List of directories to search for hidden ELF files. Defaults to "/".
 SEARCH_LOCATIONS = []  # type: List[str]
 
 # To prevent a timeout if this script is run regularly for monitoring,
@@ -13,10 +13,10 @@ SEARCH_LOCATIONS = []  # type: List[str]
 SEARCH_IN_STEPS = False
 
 # List of directories to ignore.
-IMMUTABLE_DIRECTORY_WHITELIST = []  # type: List[str]
+HIDDEN_EXE_DIRECTORY_WHITELIST = []  # type: List[str]
 
-# List of immutable files to ignore.
-IMMUTABLE_FILE_WHITELIST = []  # type: List[str]
+# List of hidden ELF files to ignore.
+HIDDEN_EXE_FILE_WHITELIST = []  # type: List[str]
 
 # Is the script allowed to run or not?
 ACTIVATED = True

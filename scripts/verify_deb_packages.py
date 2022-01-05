@@ -19,15 +19,14 @@ https://www.sandflysecurity.com/blog/detecting-linux-binary-file-poisoning/
 """
 
 import os
-import socket
 from typing import List
 
+from lib.util import output_finding
 
-# Read configuration and library functions.
+# Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR
     from config.verify_deb_packages import ACTIVATED, DEBSUMS_EXE, FILE_WHITELIST
-    from lib.alerts import raise_alert_alertr, raise_alert_mail
 except:
     ALERTR_FIFO = None
     FROM_ADDR = None
@@ -35,8 +34,6 @@ except:
     DEBSUMS_EXE = "debsums"
     FILE_WHITELIST = []
     ACTIVATED = True
-
-MAIL_SUBJECT = "[Security] Verifying deb package files on host '%s'" % socket.gethostname()
 
 
 def _process_whitelist(changed_files: List[str]) -> List[str]:
@@ -74,28 +71,10 @@ def verify_deb_packages():
         changed_files = _process_whitelist(changed_files)
 
         if changed_files:
-            hostname = socket.gethostname()
-            message = "Changed deb package files found on host '%s'.\n\n" % hostname
+            message = "Changed deb package files found.\n\n"
             message += "\n".join(["File: %s" % x for x in changed_files])
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["immutable_files"] = output_raw.split("\n")
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
 
 if __name__ == '__main__':

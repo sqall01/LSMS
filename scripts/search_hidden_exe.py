@@ -9,14 +9,14 @@
 
 """
 Short summary:
-Searches for immutable files in the filesystem.
+Searches for hidden ELF files in the filesystem. Usually, ELF binaries are not hidden in a Linux environment.
 
 Requirements:
 None
 """
 
 import os
-from typing import List, cast
+from typing import List
 
 from lib.step_state import StepLocation, load_step_state, store_step_state
 from lib.util import output_error, output_finding
@@ -25,8 +25,8 @@ from lib.util_file import FileLocation, apply_directory_whitelist, apply_file_wh
 # Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR, STATE_DIR
-    from config.search_immutable_files import ACTIVATED, SEARCH_IN_STEPS, SEARCH_LOCATIONS, \
-        IMMUTABLE_DIRECTORY_WHITELIST, IMMUTABLE_FILE_WHITELIST
+    from config.search_hidden_exe import ACTIVATED, SEARCH_IN_STEPS, SEARCH_LOCATIONS, \
+        HIDDEN_EXE_DIRECTORY_WHITELIST, HIDDEN_EXE_FILE_WHITELIST
 
     STATE_DIR = os.path.join(os.path.dirname(__file__), STATE_DIR, os.path.basename(__file__))
 except:
@@ -36,22 +36,12 @@ except:
     ACTIVATED = True
     SEARCH_IN_STEPS = False
     SEARCH_LOCATIONS = ["/"]
-    IMMUTABLE_DIRECTORY_WHITELIST = []
-    IMMUTABLE_FILE_WHITELIST = []
+    HIDDEN_EXE_DIRECTORY_WHITELIST = []
+    HIDDEN_EXE_FILE_WHITELIST = []
     STATE_DIR = os.path.join("/tmp", os.path.basename(__file__))
 
 
-class ImmutableFile(FileLocation):
-    def __init__(self, location: str, attribute: str):
-        super().__init__(location)
-        self._attribute = attribute
-
-    @property
-    def attribute(self) -> str:
-        return self._attribute
-
-
-def search_immutable_files():
+def search_hidden_exe_files():
     # Decide where to output results.
     print_output = False
     if ALERTR_FIFO is None and FROM_ADDR is None and TO_ADDR is None:
@@ -106,42 +96,34 @@ def search_immutable_files():
     while True:
         search_location_obj = search_locations[step_state_data["next_step"]]
 
-        # Get all immutable files.
+        # Get all hidden ELF files.
         if search_location_obj.search_recursive:
-            fd = os.popen("lsattr -R -a %s 2> /dev/null | sed -rn '/^[aAcCdDeijPsStTu\\-]{4}i/p'"
+            fd = os.popen("find %s -type f -iname \".*\" -exec echo -n \"{} \" \\; -exec head -c 4 {} \\; -exec echo \"\" \\; | grep -P \"\\x7fELF\""
                           % search_location_obj.location)
 
         else:
-            fd = os.popen("lsattr -a %s 2> /dev/null | sed -rn '/^[aAcCdDeijPsStTu\\-]{4}i/p'"
+            fd = os.popen("find %s -maxdepth 1 -type f -iname \".*\" -exec echo -n \"{} \" \\; -exec head -c 4 {} \\; -exec echo \"\" \\; | grep -P \"\\x7fELF\""
                           % search_location_obj.location)
         output_raw = fd.read().strip()
         fd.close()
 
         if output_raw != "":
 
-            immutable_files = []  # type: List[ImmutableFile]
+            hidden_files = []  # type: List[FileLocation]
             output_list = output_raw.split("\n")
             for output_entry in output_list:
-                output_entry_list = output_entry.split(" ")
+                file_location = output_entry[:-5]
+                hidden_files.append(FileLocation(file_location))
 
-                # Notify and skip line if sanity check fails.
-                if len(output_entry_list) != 2:
-                    output_error(__file__, "Unable to process line '%s'" % output_entry)
-                    continue
+            dir_whitelist = [FileLocation(x) for x in HIDDEN_EXE_DIRECTORY_WHITELIST]
+            file_whitelist = [FileLocation(x) for x in HIDDEN_EXE_FILE_WHITELIST]
 
-                attributes = output_entry_list[0]
-                file_location = output_entry_list[1]
-                immutable_files.append(ImmutableFile(file_location, attributes))
+            hidden_files = apply_directory_whitelist(dir_whitelist, hidden_files)
+            hidden_files = apply_file_whitelist(file_whitelist, hidden_files)
 
-            dir_whitelist = [FileLocation(x) for x in IMMUTABLE_DIRECTORY_WHITELIST]
-            file_whitelist = [FileLocation(x) for x in IMMUTABLE_FILE_WHITELIST]
-
-            immutable_files = cast(List[ImmutableFile], apply_directory_whitelist(dir_whitelist, immutable_files))
-            immutable_files = cast(List[ImmutableFile], apply_file_whitelist(file_whitelist, immutable_files))
-
-            if immutable_files:
-                message = "Immutable file(s) found:\n\n"
-                message += "\n".join(["File: %s; Attributes: %s" % (x.location, x.attribute) for x in immutable_files])
+            if hidden_files:
+                message = "Hidden ELF file(s) found:\n\n"
+                message += "\n".join(["File: %s" % x.location for x in hidden_files])
 
                 output_finding(__file__, message)
 
@@ -159,4 +141,4 @@ def search_immutable_files():
 
 
 if __name__ == '__main__':
-    search_immutable_files()
+    search_hidden_exe_files()

@@ -21,13 +21,13 @@ https://twitter.com/CraigHRowland/status/1269196509079166976
 """
 
 import os
-import socket
 
-# Read configuration and library functions.
+from lib.util import output_finding
+
+# Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR
     from config.search_dev_shm import ACTIVATED
-    from lib.alerts import raise_alert_alertr, raise_alert_mail
 except:
     ALERTR_FIFO = None
     FROM_ADDR = None
@@ -63,38 +63,11 @@ def search_suspicious_files():
     if script_raw.strip():
         suspicious_files.extend(script_raw.strip().split("\n"))
 
-    for suspicious_file in suspicious_files:
+    if suspicious_files:
+        message = "File(s) in /dev/shm suspicious:\n\n"
+        message += "\n".join(suspicious_files)
 
-        if print_output:
-            print("SUSPICIOUS")
-            print(suspicious_file)
-            print("")
-
-        else:
-            if ALERTR_FIFO is not None:
-
-                hostname = socket.gethostname()
-                optional_data = dict()
-                optional_data["suspicious_file"] = suspicious_file
-                optional_data["hostname"] = hostname
-                message = "File in /dev/shm on host '%s' suspicious.\n\n" % hostname
-                message += suspicious_file
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-
-                hostname = socket.gethostname()
-                subject = "[Security] Suspicious file found on '%s'" % hostname
-                message = "File in /dev/shm on host '%s' suspicious.\n\n" % hostname
-                message += suspicious_file
-
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 subject,
-                                 message)
+        output_finding(__file__, message)
 
 
 if __name__ == '__main__':

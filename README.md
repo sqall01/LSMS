@@ -1,6 +1,6 @@
 # Linux Security and Monitoring Scripts
 
-These are a collection of security and monitoring scripts you can use to monitor your Linux installation for security-related events or for an investigation. Each script works on its own and is independent from other scripts. The scripts can be set up to either print out their results, send them to you via mail, or using [AlertR](https://github.com/sqall01/alertR) as notification channel.
+These are a collection of security and monitoring scripts you can use to monitor your Linux installation for security-related events or for an investigation. Each script works on its own and is independent of other scripts. The scripts can be set up to either print out their results, send them to you via mail, or using [AlertR](https://github.com/sqall01/alertR) as notification channel.
 
 ## Repository Structure
 
@@ -28,10 +28,12 @@ Finally, you can run all configured scripts by executing `start_search.py` (whic
 | Monitoring /etc/ld.so.preload file          | [monitor_ld_preload.py](scripts/monitor_ld_preload.py)                   |
 | Monitoring /etc/passwd file                 | [monitor_passwd.py](scripts/monitor_passwd.py)                           |
 | Monitoring SSH authorized_keys files        | [monitor_ssh_authorized_keys.py](scripts/monitor_ssh_authorized_keys.py) |
-| Search for running deleted programs         | [search_deleted_exe.py](scripts/search_deleted_exe.py)                  |
-| Search for executables in /dev/shm          | [search_dev_shm.py](scripts/search_dev_shm.py)                           |
+| Search executables in /dev/shm              | [search_dev_shm.py](scripts/search_dev_shm.py)                           |
+| Search fileless programs (memfd_create)     | [search_memfd_create.py](scripts/search_memfd_create.py)                 |
+| Search hidden ELF files                     | [search_hidden_exe.py](scripts/search_hidden_exe.py)                     |
 | Search immutable files                      | [search_immutable_files.py](scripts/search_immutable_files.py)           |
-| Search for fileless programs (memfd_create) | [search_memfd_create.py](scripts/search_memfd_create.py)                 |
-| Search for kernel thread impersonations     | [search_non_kthreads.py](scripts/search_non_kthreads.py)                 |
+| Search kernel thread impersonations         | [search_non_kthreads.py](scripts/search_non_kthreads.py)                 |
+| Search running deleted programs             | [search_deleted_exe.py](scripts/search_deleted_exe.py)                   |
+| Search fileless programs (memfd_create)     | [search_memfd_create.py](scripts/search_memfd_create.py)                 |
 | Test script to check if alerting works      | [test_alert.py](scripts/test_alert.py)                                   |
 | Verify integrity of installed .deb packages | [verify_deb_packages.py](scripts/verify_deb_packages.py)                 |

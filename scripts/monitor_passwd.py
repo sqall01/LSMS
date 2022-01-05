@@ -16,14 +16,12 @@ None
 """
 
 import os
-import json
-import socket
-import stat
 from typing import Dict
 
-from lib.alerts import raise_alert_alertr, raise_alert_mail
+from lib.state import load_state, store_state
+from lib.util import output_error, output_finding
 
-# Read configuration and library functions.
+# Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR, STATE_DIR
     from config.monitor_passwd import ACTIVATED
@@ -34,16 +32,6 @@ except:
     TO_ADDR = None
     ACTIVATED = True
     STATE_DIR = os.path.join("/tmp", os.path.basename(__file__))
-
-MAIL_SUBJECT = "[Security] Monitoring /etc/passwd on host '%s'" % socket.gethostname()
-
-
-class MonitorPasswdException(Exception):
-    def __init__(self, msg: str):
-        self._msg = msg
-
-    def __str__(self):
-        return self._msg
 
 
 def _get_passwd() -> Dict[str, str]:
@@ -64,69 +52,7 @@ def _get_passwd() -> Dict[str, str]:
     return passwd_data
 
 
-def _load_passwd_data() -> Dict[str, str]:
-    state_file = os.path.join(STATE_DIR, "state")
-    passwd_data = {}
-    if os.path.isfile(state_file):
-        data = None
-        try:
-            with open(state_file, 'rt') as fp:
-                data = fp.read()
-            if data is None:
-                raise MonitorPasswdException("Read state data is None.")
-
-            passwd_data = json.loads(data)
-
-        except Exception as e:
-            raise MonitorPasswdException("State data: '%s'; Exception: '%s'" % (str(data), str(e)))
-
-    return passwd_data
-
-
-def _output_error(msg: str):
-
-    # Decide where to output results.
-    print_output = False
-    if ALERTR_FIFO is None and FROM_ADDR is None and TO_ADDR is None:
-        print_output = True
-
-    if print_output:
-        print(msg)
-
-    else:
-        hostname = socket.gethostname()
-        message = "Error monitoring /etc/passwd on host '%s': %s" \
-                  % (hostname, msg)
-
-        if ALERTR_FIFO:
-            optional_data = dict()
-            optional_data["error"] = True
-            optional_data["message"] = message
-
-            raise_alert_alertr(ALERTR_FIFO,
-                               optional_data)
-
-        if FROM_ADDR is not None and TO_ADDR is not None:
-            raise_alert_mail(FROM_ADDR,
-                             TO_ADDR,
-                             MAIL_SUBJECT,
-                             message)
-
-
-def _store_passwd_data(passwd_data: Dict[str, str]):
-    # Create state dir if it does not exist.
-    if not os.path.exists(STATE_DIR):
-        os.makedirs(STATE_DIR)
-
-    state_file = os.path.join(STATE_DIR, "state")
-
-    with open(state_file, 'wt') as fp:
-        fp.write(json.dumps(passwd_data))
-
-    os.chmod(state_file, stat.S_IREAD | stat.S_IWRITE)
-
-
-def monitor_hosts():
+def monitor_passwd():
 
     # Decide where to output results.
     print_output = False
@@ -140,10 +66,10 @@ def monitor_hosts():
 
     stored_passwd_data = {}
     try:
-        stored_passwd_data =_load_passwd_data()
+        stored_passwd_data = load_state(STATE_DIR)
 
     except Exception as e:
-        _output_error(str(e))
+        output_error(__file__, str(e))
         return
 
     curr_passwd_data = {}
@@ -151,7 +77,7 @@ def monitor_hosts():
         curr_passwd_data = _get_passwd()
 
     except Exception as e:
-        _output_error(str(e))
+        output_error(__file__, str(e))
         return
 
     # Compare stored data with current one.
@@ -159,93 +85,34 @@ def monitor_hosts():
 
         # Extract current entry belonging to the same user.
         if stored_entry_user not in curr_passwd_data.keys():
-            hostname = socket.gethostname()
-            message = "User '%s' was deleted on host '%s'." \
-                      % (stored_entry_user, hostname)
+            message = "User '%s' was deleted." % stored_entry_user
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["user"] = stored_entry_user
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
             continue
 
         # Check entry was modified.
         if stored_passwd_data[stored_entry_user] != curr_passwd_data[stored_entry_user]:
-            hostname = socket.gethostname()
-            message = "Passwd entry for user '%s' was modified on host '%s'.\n\n" % (stored_entry_user, hostname)
+            message = "Passwd entry for user '%s' was modified.\n\n" % stored_entry_user
             message += "Old entry: %s\n" % stored_passwd_data[stored_entry_user]
             message += "New entry: %s" % curr_passwd_data[stored_entry_user]
 
-            if print_output:
-                print(message)
-                print("#" * 80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["user"] = stored_entry_user
-                optional_data["old_entry"] = stored_passwd_data[stored_entry_user]
-                optional_data["new_entry"] = curr_passwd_data[stored_entry_user]
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
     # Check new data was added.
     for curr_entry_user in curr_passwd_data.keys():
         if curr_entry_user not in stored_passwd_data.keys():
-            hostname = socket.gethostname()
-            message = "User '%s' was added on host '%s'.\n\n" \
-                      % (curr_entry_user, hostname)
+            message = "User '%s' was added.\n\n" % curr_entry_user
             message += "Entry: %s" % curr_passwd_data[curr_entry_user]
 
-            if print_output:
-                print(message)
-                print("#"*80)
-
-            if ALERTR_FIFO:
-                optional_data = dict()
-                optional_data["user"] = curr_entry_user
-                optional_data["entry"] = curr_passwd_data[curr_entry_user]
-                optional_data["hostname"] = hostname
-                optional_data["message"] = message
-
-                raise_alert_alertr(ALERTR_FIFO,
-                                   optional_data)
-
-            if FROM_ADDR is not None and TO_ADDR is not None:
-                raise_alert_mail(FROM_ADDR,
-                                 TO_ADDR,
-                                 MAIL_SUBJECT,
-                                 message)
+            output_finding(__file__, message)
 
     try:
-        _store_passwd_data(curr_passwd_data)
+        store_state(STATE_DIR, curr_passwd_data)
 
     except Exception as e:
-        _output_error(str(e))
+        output_error(__file__, str(e))
 
 
 if __name__ == '__main__':
-    monitor_hosts()
+    monitor_passwd()

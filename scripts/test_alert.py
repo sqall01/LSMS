@@ -15,13 +15,12 @@ Requirements:
 None
 """
 
-import socket
+from lib.util import output_finding
 
-# Read configuration and and library functions.
+# Read configuration.
 try:
     from config.config import ALERTR_FIFO, FROM_ADDR, TO_ADDR
     from config.test_alert import ACTIVATED
-    from lib.alerts import raise_alert_alertr, raise_alert_mail
 except:
     ALERTR_FIFO = None
     FROM_ADDR = None
@@ -31,22 +30,5 @@ except:
 
 if __name__ == '__main__':
     if ACTIVATED:
-        if ALERTR_FIFO is not None:
-            hostname = socket.gethostname()
-            optional_data = dict()
-            optional_data["hostname"] = hostname
-            message = "Alert test on host '%s'." % hostname
-            optional_data["message"] = message
-
-            raise_alert_alertr(ALERTR_FIFO,
-                               optional_data)
-
-        if FROM_ADDR is not None and TO_ADDR is not None:
-            hostname = socket.gethostname()
-            subject = "[Security] Alert test on '%s'" % hostname
-            message = "Alert test on host '%s'." % hostname
-
-            raise_alert_mail(FROM_ADDR,
-                             TO_ADDR,
-                             subject,
-                             message)
+        message = "Alert test."
+        output_finding(__file__, message)
