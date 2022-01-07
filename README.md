@@ -28,7 +28,7 @@ If you want to use the scripts to monitor your Linux system constantly, you have
 
 2. Configure the scripts that you want to run using the configuration files in the `scripts/config/` directory.
 
-3. Set up a cron job as `root` user that executes `start_search.py` (e.g., `0 *    * * *   root    /root/security_scripts/start_search.py` to start the search hourly).
+3. Set up a cron job as `root` user that executes `start_search.py` (e.g., `0 *    * * *   root    /opt/LSMS/start_search.py` to start the search hourly).
 
 ## List of Scripts
 
