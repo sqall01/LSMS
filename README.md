@@ -20,6 +20,16 @@ The shared configuration file `scripts/config/config.py` contains settings that 
 
 Finally, you can run all configured scripts by executing `start_search.py` (which is located in the main directory) or by executing each script manually. A Python3 interpreter is needed to run the scripts.
 
+### Monitoring
+
+If you want to use the scripts to monitor your Linux system constantly, you have to perform the following steps:
+
+1. Set up a notification channel that is supported by the scripts (currently printing out, mail, or [AlertR](https://github.com/sqall01/alertR)).
+
+2. Configure the scripts that you want to run using the configuration files in the `scripts/config/` directory.
+
+3. Set up a cron job as `root` user that executes `start_search.py` (e.g., `0 *    * * *   root    /root/security_scripts/start_search.py` to start the search hourly).
+
 ## List of Scripts
 
 | Name                                        | Script                                                                   |
