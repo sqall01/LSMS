@@ -11,6 +11,8 @@
 Short summary:
 Monitor /etc/ld.so.preload for changes to detect malicious attempts to alter the control flow of binaries.
 
+NOTE: The first execution of this script will only show you the current state of the environment which should be acknowledged before monitoring for changes will become an effective security measure.
+
 Requirements:
 None
 """

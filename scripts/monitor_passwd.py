@@ -11,6 +11,8 @@
 Short summary:
 Monitor /etc/passwd for changes to detect malicious attempts to hijack/change users.
 
+NOTE: The first execution of this script will only show you the current state of the environment which should be acknowledged before monitoring for changes will become an effective security measure.
+
 Requirements:
 None
 """

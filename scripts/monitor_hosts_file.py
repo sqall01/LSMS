@@ -11,6 +11,8 @@
 Short summary:
 Monitor /etc/hosts for changes to detect malicious attempts to divert traffic.
 
+NOTE: The first execution of this script will only show you the current state of the environment which should be acknowledged before monitoring for changes will become an effective security measure.
+
 Requirements:
 None
 """
