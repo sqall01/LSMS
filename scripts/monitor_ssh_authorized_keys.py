@@ -23,6 +23,7 @@ from typing import List, Tuple, Dict, Any
 
 from lib.state import load_state, store_state
 from lib.util import output_error, output_finding
+from lib.util_user import get_system_users
 
 # Read configuration.
 try:
@@ -38,30 +39,16 @@ except:
 
 
 class MonitorSSHException(Exception):
-    def __init__(self, msg: str):
-        self._msg = msg
-
-    def __str__(self):
-        return self._msg
+    pass
 
 
-def _get_home_dirs_from_passwd() -> List[Tuple[str, str]]:
-    user_home_list = []
-    try:
-        with open("/etc/passwd", 'rt') as fp:
-            for line in fp:
-                line_split = line.split(":")
-                user_home_list.append((line_split[0], line_split[5]))
-
-    except Exception as e:
-        raise MonitorSSHException(str(e))
-
-    return user_home_list
+def _get_home_dirs() -> List[Tuple[str, str]]:
+    return [(x.name, x.home) for x in get_system_users()]
 
 
 def _get_system_ssh_data() -> List[Dict[str, Any]]:
     ssh_data = []
-    user_home_list = _get_home_dirs_from_passwd()
+    user_home_list = _get_home_dirs()
 
     for user, home in user_home_list:
         # Monitor "authorized_keys2" too since SSH also checks this file for keys (even though it is deprecated).
@@ -186,9 +173,3 @@ def monitor_ssh_authorized_keys():
 
 if __name__ == '__main__':
     monitor_ssh_authorized_keys()
-
-
-
-
-
-

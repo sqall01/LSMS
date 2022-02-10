@@ -34,6 +34,7 @@ If you want to use the scripts to monitor your Linux system constantly, you have
 
 | Name                                        | Script                                                                   |
 |---------------------------------------------|--------------------------------------------------------------------------|
+| Monitoring cron files                       | [monitor_cron.py](scripts/monitor_cron.py)                               |
 | Monitoring /etc/hosts file                  | [monitor_hosts_file.py](scripts/monitor_hosts_file.py)                   |
 | Monitoring /etc/ld.so.preload file          | [monitor_ld_preload.py](scripts/monitor_ld_preload.py)                   |
 | Monitoring /etc/passwd file                 | [monitor_passwd.py](scripts/monitor_passwd.py)                           |

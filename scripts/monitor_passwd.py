@@ -22,6 +22,7 @@ from typing import Dict
 
 from lib.state import load_state, store_state
 from lib.util import output_error, output_finding
+from lib.util_user import get_system_users
 
 # Read configuration.
 try:
@@ -37,19 +38,10 @@ except:
 
 
 def _get_passwd() -> Dict[str, str]:
-
     passwd_data = {}
-    with open("/etc/passwd", 'rt') as fp:
-        for line in fp:
-            line = line.strip()
-
-            if line == "":
-                continue
-
-            entry = line.strip().split(":")
-
-            user = entry[0]
-            passwd_data[user] = line
+    for user_obj in get_system_users():
+        user = user_obj.name
+        passwd_data[user] = str(user_obj)
 
     return passwd_data
 

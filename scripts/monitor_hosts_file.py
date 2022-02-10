@@ -37,11 +37,7 @@ except:
 
 
 class MonitorHostsException(Exception):
-    def __init__(self, msg: str):
-        self._msg = msg
-
-    def __str__(self):
-        return self._msg
+    pass
 
 
 def _get_hosts() -> Dict[str, Set[str]]:
