@@ -15,6 +15,7 @@ Requirements:
 None
 """
 
+import sys
 from lib.util import output_finding
 
 # Read configuration.
@@ -29,6 +30,13 @@ except:
 
 
 if __name__ == '__main__':
-    if ACTIVATED:
-        message = "Alert test."
-        output_finding(__file__, message)
+    is_init_run = False
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--init":
+            is_init_run = True
+
+    # Script does not need to establish a state.
+    if not is_init_run:
+        if ACTIVATED:
+            message = "Alert test."
+            output_finding(__file__, message)

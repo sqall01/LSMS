@@ -11,15 +11,21 @@
 Short summary:
 Monitor /etc/passwd for changes to detect malicious attempts to hijack/change users.
 
-NOTE: The first execution of this script will only show you the current state of the environment which should be acknowledged before monitoring for changes will become an effective security measure.
+NOTE: The first execution of this script should be done with the argument "--init".
+Otherwise, the script will only show you the current state of the environment since no state was established yet.
+However, this assumes that the system is uncompromised during the initial execution.
+Hence, if you are unsure this is the case you should verify the current state
+before monitoring for changes will become an effective security measure.
 
 Requirements:
 None
 """
 
 import os
+import sys
 from typing import Dict
 
+import lib.global_vars
 from lib.state import load_state, store_state
 from lib.util import output_error, output_finding
 from lib.util_user import get_system_users
@@ -109,4 +115,8 @@ def monitor_passwd():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        # Suppress output in our initial execution to establish a state.
+        if sys.argv[1] == "--init":
+            lib.global_vars.SUPPRESS_OUTPUT = True
     monitor_passwd()

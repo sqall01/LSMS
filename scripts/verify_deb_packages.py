@@ -19,6 +19,7 @@ https://www.sandflysecurity.com/blog/detecting-linux-binary-file-poisoning/
 """
 
 import os
+import sys
 from typing import List
 
 from lib.util import output_finding
@@ -61,7 +62,7 @@ def verify_deb_packages():
             print("Module deactivated.")
         return
 
-    fd = os.popen("%s -c" % DEBSUMS_EXE)
+    fd = os.popen("%s -c 2> /dev/null" % DEBSUMS_EXE)
     output_raw = fd.read().strip()
     fd.close()
 
@@ -78,4 +79,11 @@ def verify_deb_packages():
 
 
 if __name__ == '__main__':
-    verify_deb_packages()
+    is_init_run = False
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--init":
+            is_init_run = True
+
+    # Script does not need to establish a state.
+    if not is_init_run:
+        verify_deb_packages()

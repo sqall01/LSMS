@@ -12,7 +12,11 @@ Short summary:
 Monitor /etc/crontab, /etc/cron.d/*, user specific crontab files and script files run by cron (e.g., script files in /etc/cron.hourly) for changes to detect attempts for attacker persistence.
 Additionally, check if crontab entries and user specific crontab files belong to existing system users.
 
-NOTE: The first execution of this script will only show you the current state of the environment which should be acknowledged before monitoring for changes will become an effective security measure.
+NOTE: The first execution of this script should be done with the argument "--init".
+Otherwise, the script will only show you the current state of the environment since no state was established yet.
+However, this assumes that the system is uncompromised during the initial execution.
+Hence, if you are unsure this is the case you should verify the current state
+before monitoring for changes will become an effective security measure.
 
 Requirements:
 None
@@ -21,8 +25,10 @@ None
 import hashlib
 import os
 import re
+import sys
 from typing import Dict, List, Set
 
+import lib.global_vars
 from lib.state import load_state, store_state
 from lib.util import output_error, output_finding
 from lib.util_user import get_system_users
@@ -236,4 +242,8 @@ def monitor_cron():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        # Suppress output in our initial execution to establish a state.
+        if sys.argv[1] == "--init":
+            lib.global_vars.SUPPRESS_OUTPUT = True
     monitor_cron()

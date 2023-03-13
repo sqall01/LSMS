@@ -10,6 +10,7 @@
 import os
 import subprocess
 import socket
+import sys
 import time
 from scripts.config.config import START_PROCESS_TIMEOUT, TO_ADDR, FROM_ADDR, ALERTR_FIFO
 from scripts.lib.alerts import raise_alert_alertr, raise_alert_mail
@@ -29,7 +30,12 @@ if __name__ == '__main__':
             if print_output:
                 print("Executing %s" % script)
 
-            to_execute = script_dir + script
+            to_execute = [script_dir + script]
+
+            # Pass arguments to scripts.
+            if len(sys.argv) > 1:
+                to_execute.extend(sys.argv[1:])
+
             process = None
             try:
                 process = subprocess.Popen(to_execute,

@@ -24,6 +24,7 @@ https://www.sandflysecurity.com/blog/detecting-linux-kernel-process-masquerading
 """
 
 import os
+import sys
 
 from lib.util import output_error, output_finding
 
@@ -97,4 +98,11 @@ def search_suspicious_process():
 
 
 if __name__ == '__main__':
-    search_suspicious_process()
+    is_init_run = False
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--init":
+            is_init_run = True
+
+    # Script does not need to establish a state.
+    if not is_init_run:
+        search_suspicious_process()

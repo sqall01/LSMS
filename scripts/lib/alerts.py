@@ -25,7 +25,7 @@ def raise_alert_alertr(alertr_fifo: str,
         try:
             # Will throw an exception if FIFO file does not have a reader instead of blocking.
             fd = os.open(alertr_fifo, os.O_WRONLY | os.O_NONBLOCK)
-            os.write(fd, json.dumps(msg_dict).encode("ascii"))
+            os.write(fd, (json.dumps(msg_dict) + "\n").encode("ascii"))
             os.close(fd)
             # Give AlertR sensor time to process the data.
             # Otherwise, a parsing error might occur on the FIFO sensor when multiple messages were mixed.

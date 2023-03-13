@@ -16,6 +16,7 @@ None
 """
 
 import os
+import sys
 from typing import List, cast
 
 from lib.step_state import StepLocation, load_step_state, store_step_state
@@ -159,4 +160,11 @@ def search_immutable_files():
 
 
 if __name__ == '__main__':
-    search_immutable_files()
+    is_init_run = False
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--init":
+            is_init_run = True
+
+    # Script does not need to establish a state.
+    if not is_init_run:
+        search_immutable_files()
