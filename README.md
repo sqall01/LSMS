@@ -51,8 +51,7 @@ them establish a state of your system. However, this assumes that your system is
 If you are unsure of this, you should verify its current state.
 
 4. Set up a cron job as `root` user that executes `start_search.py`
-
-5. (e.g., `0 *    * * *   root    /opt/LSMS/start_search.py` to start the search hourly).
+(e.g., `0 *    * * *   root    /opt/LSMS/start_search.py` to start the search hourly).
 
 ## List of Scripts
 
