@@ -50,7 +50,7 @@ except:
                          "/usr/lib/systemd/user",
                          "/usr/lib/systemd/network",
                          "/usr/local/lib/systemd/system",
-                         "/usr/local/lib/systemd/user"
+                         "/usr/local/lib/systemd/user",
                          "/usr/local/lib/systemd/network",
                          "/lib/systemd/system",
                          "/lib/systemd/user",

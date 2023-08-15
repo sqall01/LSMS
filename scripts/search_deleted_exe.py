@@ -16,6 +16,7 @@ None
 """
 
 import os
+import re
 import sys
 
 from lib.util import output_finding
@@ -54,7 +55,17 @@ def search_deleted_exe_files():
 
     if suspicious_exes:
         message = "Deleted executable file(s) found:\n\n"
-        message += "\n".join(suspicious_exes)
+        for suspicious_exe in suspicious_exes:
+            match = re.search(r" (/proc/(\d+)/exe -> .*)$", suspicious_exe)
+            exe = match.group(1)
+            pid = match.group(2)
+            message += "\n%s" % exe
+            with open("/proc/%s/cmdline" % pid, "rb") as fp:
+                cmdline = fp.read()
+                # Replace 0-bytes with whitespaces for readability
+                cmdline = cmdline.replace(b"\x00", b" ")
+                message += "\n/proc/%s/cmdline -> %s" % (pid, cmdline.decode("utf-8"))
+            message += "\n"
 
         output_finding(__file__, message)
 
